@@ -8,6 +8,8 @@ const location = window.location
 
 const Enum = require('enum')
 
+const api = require('./api.js')
+
 const normalize = require('./styles/normalize.js')
 
 const onHashChange = Event(broadcast => {
@@ -50,13 +52,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const rootElement = layout()
   document.body.appendChild(rootElement)
+
+  onHashChange(() => {
+    yo.update(rootElement, layout())
+  })
 })
 
 function layout () {
-  const routeViewEl = routeView()
-  onHashChange(() => {
-    yo.update(routeViewEl, routeView())
-  })
   return yo`
 <div class="${styles.row}">
 
@@ -65,7 +67,7 @@ function layout () {
   </div>
 
   <div class="${styles.col} ${styles.col9}">
-    ${routeViewEl}
+    ${routeView()}
   </div>
 
 </div>`
@@ -82,10 +84,33 @@ ${(() => {
 </div>`
 }
 
-function systemsView () {
-  return yo`
-<h2>systems</h2>
+function systemsView (state = {systems: []}) {
+  if (!state.inited) {
+    init()
+  }
+
+  const element = yo`
+<div>
+  <h2>systems ${state.inited ? '[loaded]' : '[loading]'}</h2>
+  <div>
+    ${state.systems.map(system => yo`
+      <h3>${system.title}</h3>
+    `)}
+  </div>
+</div>
 `
+  return element
+
+  function init () {
+    api.systems.list()
+      .then(systems => {
+        const newEl = systemsView({
+          inited: true,
+          systems
+        })
+        yo.update(element, newEl)
+      })
+  }
 }
 
 function navigation () {

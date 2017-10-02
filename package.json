@@ -1,0 +1,26 @@
+{
+  "name": "ayelem",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/index.js",
+  "scripts": {
+    "watch": "budo src/index.js --live",
+    "test:watch": "nodemon -x \"npm test\"",
+    "test": "tape src/**/*.spec.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "browserify": "^14.4.0",
+    "budo": "^10.0.4",
+    "faucet": "^0.0.1",
+    "nodemon": "^1.12.1",
+    "tape": "^4.8.0"
+  },
+  "dependencies": {
+    "csjs": "^1.1.0",
+    "geval": "^2.2.0",
+    "global": "^4.3.2",
+    "yo-yo": "^1.4.1"
+  }
+}

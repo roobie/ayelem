@@ -12,9 +12,7 @@ const location = window.location
 const api = require('api')
 const navigation = require('navigation')
 
-const normalize = require('./styles/normalize.js')
-const layoutStyles = require('./styles/layout.js')
-const statesStyles = require('./styles/states.js')
+const styles = require('styles')
 
 const onHashChange = Event(broadcast => {
   window.onhashchange = broadcast
@@ -22,9 +20,7 @@ const onHashChange = Event(broadcast => {
 
 document.addEventListener('DOMContentLoaded', () => {
   const styleElement = yo`<style>
-    ${csjs.getCss(normalize)}
-    ${csjs.getCss(layoutStyles)}
-    ${csjs.getCss(statesStyles)}
+    ${_.values(styles).map(csjs.getCss)}
   </style>`
   document.head.appendChild(styleElement)
 
@@ -42,13 +38,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function Layout () {
   return wire()`
-<div class="${layoutStyles.row}">
+<div class="${styles.layout.row}">
 
-  <div class="${layoutStyles.col3}">
+  <div class="${styles.layout.col3}">
     ${Navigation()}
   </div>
 
-  <div class="${layoutStyles.col9}">
+  <div class="${styles.layout.col9}">
     ${CurrentView()}
   </div>
 
@@ -57,9 +53,7 @@ function Layout () {
 
 function CurrentView () {
   return wire()`
-  <div>
-    ${getView()}
-  </div>`
+    ${getView()}`
 
   function getView () {
     switch (location.hash.slice(1)) {
@@ -76,7 +70,6 @@ function SystemsView (props = {}) {
   }
 
   return wire()`
-  <div>
     ${{
       any: api.systems.list()
         .then(result => new SimpleCrudList({
@@ -84,8 +77,7 @@ function SystemsView (props = {}) {
           columns: ['title', 'created']
         })),
       placeholder: 'Loading'
-    }}
-  </div>`
+    }}`
 
   function init() {
 
@@ -101,6 +93,7 @@ class SimpleCrudList extends hyper.Component {
       lastSortedBy: null,
       sortedBy: null,
       descending: false,
+      selectedItems: [],
     }
   }
 
@@ -111,22 +104,26 @@ class SimpleCrudList extends hyper.Component {
 
   render() {
     return this.html`
-    <table>
-      <thead>
-        ${HRow.call(this, this.state.columns)}
-      </thead>
-      <tbody>
-        ${getData.call(this).map(item => BRow({item, columns: this.state.columns}))}
-      </tbody>
-    </table>`
+    <div>
+      <aside>
+        <button type="button">+ Create</button>
+        <button type="button">⧉ Open</button>
+        <button type="button">✎ Edit</button>
+        <button type="button">× Delete</button>
+      </aside>
+      <table>
+        <thead>
+          ${HRow.call(this, this.state.columns)}
+        </thead>
+        <tbody>
+          ${getData.call(this).map(item => BRow.call(this, {item, columns: this.state.columns}))}
+        </tbody>
+      </table>
+    </div>`
 
     function getData () {
       let result = _(this.state.items)
-        .sortBy(this.state.sortedBy || this.state.columns[0])
-
-      if (this.state.descending) {
-        result = result.reverse()
-      }
+        .orderBy([this.state.sortedBy || this.state.columns[0]], [this.state.descending ? 'desc' : 'asc'])
 
       return result.valueOf()
     }
@@ -134,7 +131,11 @@ class SimpleCrudList extends hyper.Component {
     function HRow (columns) {
       return wire()`
         <tr>
-          ${columns.map(th => wire()`<th onclick=${click(th).bind(this)}>${th}</th>`)}
+          <th>☐</th>
+          ${columns.map(th => {
+            const classes = [styles.states.clickable].join(' ')
+            return wire()`<th class=${classes} onclick=${click(th).bind(this)}>${th}</th>`
+          })}
         </tr>`
 
       function click (th) {
@@ -149,12 +150,42 @@ class SimpleCrudList extends hyper.Component {
     }
 
     function BRow ({item, columns}) {
+      const isSelected = _.includes(this.state.selectedItems, item)
+      const classes = className({
+        [styles.states.selected]: isSelected
+      })
+
       return wire()`
-        <tr>
+        <tr class=${classes} onclick=${click.bind(this)}>
+          <td>${isSelected ? '✓' : ''}</td>
           ${columns.map(col => `<td>${item[col]}</td>`)}
         </tr>`
+
+      function click () {
+        this.toggleSelected(item)
+      }
     }
   }
+
+  toggleSelected (item) {
+
+    const isSelected = this.state.selectedItems.indexOf(item) !== -1
+    if (isSelected) {
+      this.setState({selectedItems: this.state.selectedItems.filter(x => x !== item)})
+    } else {
+      this.setState({selectedItems: this.state.selectedItems.concat([item])})
+    }
+  }
+}
+
+function className (hash) {
+  const result = []
+  for (let k in hash) {
+    if (hash[k]) {
+      result.push(k)
+    }
+  }
+  return result.join(' ')
 }
 
 function NotFoundView () {
@@ -187,8 +218,8 @@ function NavigationNode (props) {
 
   function getClasses () {
     return [
-      layoutStyles.row,
-      route === location.hash ? statesStyles.selected: null
+      styles.layout.row,
+      route === location.hash ? styles.states.selected: null
     ].filter(Boolean).join(' ')
   }
 }

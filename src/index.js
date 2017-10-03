@@ -1,52 +1,25 @@
 const csjs = require('csjs')
 const yo = require('yo-yo')
+const hyper = require('hyperhtml')
 
 const Event = require('geval')
 const window = require('global/window')
 const document = require('global/document')
 const location = window.location
 
-const Enum = require('enum')
-
-const api = require('./api.js')
+const api = require('api')
 
 const normalize = require('./styles/normalize.js')
+const layoutStyles = require('./styles/layout.js')
 
 const onHashChange = Event(broadcast => {
   window.onhashchange = broadcast
 })
 
-const styles = csjs`
-* {
-  box-sizing: border-box;
-}
-
-.flex {
-  display: flex;
-  border: 1px solid red;
-}
-
-.horizontal {
-  flex-direction: row;
-}
-
-.vertical {
-  flex-direction: column;
-}
-
-.row extends .flex, .horizontal { }
-.col extends .flex, .vertical { }
-
-${Enum.Range(1, 13).map((_, n) => `.col${n + 1} {
-  flex: ${n + 1};
-}`).join('')}
-`
-
-
 document.addEventListener('DOMContentLoaded', () => {
   const styleElement = yo`<style>
     ${csjs.getCss(normalize)}
-    ${csjs.getCss(styles)}
+    ${csjs.getCss(layoutStyles)}
   </style>`
   document.head.appendChild(styleElement)
 
@@ -58,15 +31,15 @@ document.addEventListener('DOMContentLoaded', () => {
   })
 })
 
-function layout () {
-  return yo`
-<div class="${styles.row}">
+function layout (render) {
+  return render`
+<div class="${layoutStyles.row}">
 
-  <div class="${styles.col} ${styles.col3}">
+  <div class="${layoutStyles.col} ${layoutStyles.col3}">
     ${navigation()}
   </div>
 
-  <div class="${styles.col} ${styles.col9}">
+  <div class="${layoutStyles.col} ${layoutStyles.col9}">
     ${routeView()}
   </div>
 
@@ -74,41 +47,60 @@ function layout () {
 }
 
 function routeView () {
-  return yo`<div>
-${(() => {
-  switch (location.hash) {
-    case '#/systems': return systemsView()
-    default: return 'empty'
+  return yo`
+  <div>
+    ${getView()}
+  </div>`
+
+  function getView() {
+    switch (location.hash.slice(1)) {
+      case '':         return indexView()
+      case '/systems': return systemsView()
+      default:         return notFoundView()
+    }
   }
-})()}
-</div>`
+}
+
+function indexView () {
+  return yo`
+  <div>
+    <h4>Index</h4>
+  </div>`
+}
+
+function notFoundView () {
+  return yo`
+  <div>
+    <h4>Not found</h4>
+  </div>`
 }
 
 function systemsView (state = {systems: []}) {
+  const id = Math.random().toString()
+  const element = yo`
+  <div id="${id}">
+    <h2>systems ${state.inited ? '[loaded]' : '[loading]'}</h2>
+    <div>
+      ${state.systems.map(system => yo`
+        <h3>${system.title}</h3>
+      `)}
+    </div>
+  </div>`
+
   if (!state.inited) {
     init()
   }
 
-  const element = yo`
-<div>
-  <h2>systems ${state.inited ? '[loaded]' : '[loading]'}</h2>
-  <div>
-    ${state.systems.map(system => yo`
-      <h3>${system.title}</h3>
-    `)}
-  </div>
-</div>
-`
   return element
 
   function init () {
     api.systems.list()
       .then(systems => {
-        const newEl = systemsView({
+        const newElement = systemsView({
           inited: true,
           systems
         })
-        yo.update(element, newEl)
+        yo.update(element, newElement)
       })
   }
 }
@@ -122,7 +114,7 @@ function navigation () {
   return yo`
 <div>
   ${nodes.map(node => yo`
-    <a class="${styles.row}"
+    <a class="${layoutStyles.row}"
        href="#${node.path}"
        title="${node.title}">${node.title}</a>
   `)}

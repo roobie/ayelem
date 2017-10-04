@@ -10,7 +10,10 @@ const location = window.location
 
 const styleHandler = require('./style_handler')
 
-const Layout = require('Layout')
+const Layout = require('components/Layout')
+function update () {
+  bind(document.body)`${Layout()}`
+}
 
 const onHashChange = Event(broadcast => {
   window.onhashchange = broadcast
@@ -20,17 +23,11 @@ const onDOMContentLoaded = Event(broadcast => {
   document.addEventListener('DOMContentLoaded', broadcast)
 })
 
-function update () {
-  bind(document.body)`${Layout()}`
-}
-
 onHashChange(update)
 onDOMContentLoaded(() => {
   document.head.appendChild(styleHandler.getStyleElement(document))
-
-  if (location.hash.length <= 1) {
-    location.hash = '#/'
+  if (['', '#'].includes(location.hash)) {
+    location.hash = '/'
   }
-
   update()
 })

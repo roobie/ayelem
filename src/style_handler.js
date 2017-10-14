@@ -2,6 +2,7 @@ const csjs = require('csjs')
 
 const styles = require('styles')
 const SimpleTable = require('components/simple_table')
+const SimpleCalendar = require('components/simple_calendar')
 
 module.exports = {
   getStyleElement: function (document) {
@@ -13,6 +14,7 @@ module.exports = {
       csjs.getCss(styles.common),
 
       csjs.getCss(SimpleTable.style),
+      csjs.getCss(SimpleCalendar.style),
     ].join('\n')
 
     return el
